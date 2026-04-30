@@ -14,13 +14,25 @@ services:
         value: 5001
       - key: DATABASE_URL
         sync: false # Set manually in Render Dashboard
-      - key: JWT_SECRET
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
-      - key: REDIS_URL
+      - key: ENCRYPTION_KEY_USER_DATA
+        generateValue: true
+      - key: ENCRYPTION_KEY_KYC
+        generateValue: true
+      - key: ENCRYPTION_KEY_TRANSACTION
+        generateValue: true
+      - key: SENDGRID_API_KEY
         sync: false
       - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false

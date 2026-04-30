@@ -2,7 +2,7 @@ services:
   # ─── 1. NestJS API (Web Service) ───────────────────────────────
   - type: web
     name: batuwa-api
-    runtime: node
+    env: node
     region: oregon
     plan: free
     rootDir: packages/api
@@ -34,9 +34,7 @@ services:
   # ─── 2. Admin Dashboard (Static Site) ──────────────────────────
   - type: web
     name: batuwa-admin
-    runtime: static
-    region: oregon
-    plan: free
+    env: static
     rootDir: apps/admin
     buildCommand: npm install && npm run build
     staticPublishPath: dist
@@ -48,9 +46,7 @@ services:
   # ─── 3. Merchant Portal (Static Site) ──────────────────────────
   - type: web
     name: batuwa-merchant
-    runtime: static
-    region: oregon
-    plan: free
+    env: static
     rootDir: apps/merchant
     buildCommand: npm install && npm run build
     staticPublishPath: dist

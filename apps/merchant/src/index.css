@@ -1,0 +1,152 @@
+:root {
+  --primary: #4F7CFF;
+  --primary-dark: #3A60D6;
+  --accent: #FF8C00; /* Distinctive Orange for Merchants */
+  --background: #0B0F1A;
+  --surface: #131929;
+  --surface-light: #1C253D;
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --border: #1E293B;
+  --error: #FF4D4D;
+  --success: #00D09C;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: var(--background);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.merchant-app {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background-color: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 2rem 1.5rem;
+}
+
+.business-info {
+  margin-bottom: 3rem;
+}
+
+.business-name {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.business-id {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.nav-item {
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+
+.nav-item:hover, .nav-item.active {
+  background-color: var(--surface-light);
+  color: var(--text-primary);
+}
+
+.main-content {
+  padding: 2.5rem;
+  overflow-y: auto;
+}
+
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.revenue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.revenue-card {
+  text-align: left;
+}
+
+.revenue-value {
+  font-size: 2.25rem;
+  font-weight: bold;
+  margin: 0.5rem 0;
+  color: var(--success);
+}
+
+.revenue-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  color: var(--text-secondary);
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+
+.table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9375rem;
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.1s;
+}
+
+.btn-primary { background-color: var(--primary); color: white; }
+.btn-accent { background-color: var(--accent); color: white; }
+.btn:active { transform: scale(0.98); }
+
+.qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.qr-placeholder {
+  width: 200px;
+  height: 200px;
+  background-color: white;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: black;
+  font-weight: bold;
+}

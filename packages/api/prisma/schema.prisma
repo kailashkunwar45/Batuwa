@@ -1,0 +1,793 @@
+// ═══════════════════════════════════════════════════════════════
+// K-Kollection FinTech — Complete Prisma Schema
+// All tables built upfront — never do painful mid-project migrations
+// ═══════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// USERS & AUTH
+// ─────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+  MERCHANT
+}
+
+model User {
+  id              String       @id @default(cuid()) @map("_id")
+  phone           String?      @unique
+  email           String       @unique
+  passwordHash    String?
+  pinHash         String?
+  fullName        String?
+  avatarUrl       String?
+  role            Role         @default(USER)
+  kycLevel        Int          @default(0)
+  kycStatus       KycStatus    @default(PENDING)
+  kycRiskLevel    KycRiskLevel @default(LOW)
+  isActive        Boolean      @default(true)
+  isFrozen        Boolean      @default(false)
+  freezeReason    String?
+  frozenAt        DateTime?
+  financialScore  Float?
+  referralCode    String?      @unique @default(cuid())
+  referredById    String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  wallet          Wallet?
+  kyc             KYC?
+  sessions        Session[]
+  devices         Device[]
+  notifications   Notification[]
+  riskProfile     RiskProfile?
+  parentLinks     FamilyLink[] @relation("ParentLinks")
+  childLinks      FamilyLink[] @relation("ChildLinks")
+  merchant        Merchant?
+  rewards         Reward[]
+  posts           Post[]
+  likes           Like[]
+  comments        Comment[]
+  followers       Follow[]     @relation("Following")
+  following       Follow[]     @relation("Followers")
+  isPrivate       Boolean      @default(false)
+  sentRequests    FollowRequest[] @relation("SentRequests")
+  receivedRequests FollowRequest[] @relation("ReceivedRequests")
+
+  @@index([role])
+}
+
+model Session {
+  id           String   @id @default(cuid()) @map("_id")
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId     String?
+  deviceName   String?
+  ipAddress    String?
+  userAgent    String?
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Device {
+  id           String   @id @default(cuid()) @map("_id")
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fingerprint  String   @unique
+  deviceType   String?
+  os           String?
+  osVersion    String?
+  appVersion   String?
+  fcmToken     String?
+  isTrusted    Boolean  @default(false)
+  lastSeenAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model OTP {
+  id          String    @id @default(cuid()) @map("_id")
+  target      String    // email or phone
+  code        String
+  type        OtpType
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([target, type])
+}
+
+// ─────────────────────────────────────────
+// WALLET & LEDGER ENGINE
+// ─────────────────────────────────────────
+
+model Wallet {
+  id         String   @id @default(cuid()) @map("_id")
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currency   String   @default("NPR")
+  isLocked   Boolean  @default(false)
+  lockReason String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  entries    LedgerEntry[]
+  vaults     Vault[]
+
+
+}
+
+// THE CORE: Double-entry ledger. Balance = SUM(CREDIT) - SUM(DEBIT)
+// LEDGER_IMMUTABILITY=true — these rows are NEVER updated, only inserted
+model LedgerEntry {
+  id             String      @id @default(cuid()) @map("_id")
+  walletId       String
+  wallet         Wallet      @relation(fields: [walletId], references: [id])
+  type           EntryType   // CREDIT | DEBIT
+  amount         Float     @db.Double
+  reference      String      @unique // Transaction ID or system ref
+  transactionId  String?
+  description    String
+  category       TxnCategory
+  metadata       Json?
+  auditFlag      Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+
+  transaction    Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@index([walletId])
+  @@index([transactionId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+// ─────────────────────────────────────────
+// TRANSACTIONS
+// ─────────────────────────────────────────
+
+model Transaction {
+  id               String       @id @default(cuid()) @map("_id")
+  idempotencyKey   String       @unique // PREVENTS DUPLICATE PAYMENTS
+  fromWalletId     String?
+  toWalletId       String?
+  amount           Float      @db.Double
+  fee              Float      @default(0) @db.Double
+  netAmount        Float      @db.Double
+  currency         String       @default("NPR")
+  status           TxnStatus    @default(PENDING)
+  type             TxnType
+  billCategory     BillCategory?
+  billProvider     String?
+  billRef          String?      // Account number at provider
+  billProviderRef  String?      // Provider's transaction ID
+  channel          TxnChannel   @default(APP)
+  riskScore        Float?
+  isFlagged        Boolean      @default(false)
+  flagReason       String?
+  refundOf         String?      // ID of original transaction (for refunds)
+  retryOf          String?      // ID of failed transaction (for retries)
+  retryCount       Int          @default(0)
+  metadata         Json?
+  receiptUrl       String?      // Cloudinary URL
+  note             String?      // User-added note
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  settledAt        DateTime?
+  reversedAt       DateTime?
+  expiredAt        DateTime?
+
+  ledgerEntries    LedgerEntry[]
+  lifecycle        TxnLifecycle[]
+  refunds          Refund[]
+
+  @@index([fromWalletId])
+  @@index([toWalletId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([isFlagged])
+}
+
+// Full state machine audit trail — every status change logged
+model TxnLifecycle {
+  id            String      @id @default(cuid()) @map("_id")
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  fromStatus    TxnStatus?
+  toStatus      TxnStatus
+  message       String?
+  triggeredBy   String?     // "USER" | "SYSTEM" | "ADMIN:userId"
+  metadata      Json?
+  timestamp     DateTime    @default(now())
+
+  @@index([transactionId])
+}
+
+// Idempotency store (also backed by Redis for speed)
+model IdempotencyRecord {
+  key        String   @id @map("_id")
+  response   Json
+  statusCode Int
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────
+// REFUNDS
+// ─────────────────────────────────────────
+
+model Refund {
+  id            String       @id @default(cuid()) @map("_id")
+  transactionId String
+  transaction   Transaction  @relation(fields: [transactionId], references: [id])
+  amount        Float      @db.Double
+  type          RefundType
+  reason        String
+  status        RefundStatus @default(PENDING)
+  initiatedBy   String       // userId or "SYSTEM" or "ADMIN:userId"
+  adminNote     String?
+  processedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([transactionId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────
+// RECONCILIATION ENGINE
+// ─────────────────────────────────────────
+
+model ReconciliationJob {
+  id              String    @id @default(cuid()) @map("_id")
+  runAt           DateTime  @default(now())
+  status          JobStatus @default(RUNNING)
+  walletsChecked  Int       @default(0)
+  discrepancies   Int       @default(0)
+  autoFixed       Int       @default(0)
+  flaggedForReview Int      @default(0)
+  report          Json?
+  completedAt     DateTime?
+
+  alerts          ReconciliationAlert[]
+
+  @@index([runAt])
+  @@index([status])
+}
+
+model ReconciliationAlert {
+  id          String            @id @default(cuid()) @map("_id")
+  jobId       String
+  job         ReconciliationJob @relation(fields: [jobId], references: [id])
+  walletId    String
+  expected    Float           @db.Double
+  actual      Float           @db.Double
+  delta       Float           @db.Double
+  autoFixed   Boolean           @default(false)
+  fixNote     String?
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@index([walletId])
+  @@index([jobId])
+}
+
+// ─────────────────────────────────────────
+// KYC
+// ─────────────────────────────────────────
+
+model KYC {
+  id                  String       @id @default(cuid()) @map("_id")
+  userId              String       @unique
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level               Int          @default(0)
+
+  // Level 1 fields
+  fullName            String?
+  phone               String?
+
+  // Level 2 fields
+  dob                 DateTime?
+  address             String?
+  citizenshipNo       String?
+  citizenshipFrontUrl String?      // Cloudinary URL
+  citizenshipBackUrl  String?
+  selfieUrl           String?
+
+  // OCR extracted data
+  ocrExtracted        Json?
+  ocrConfidence       Float?
+
+  // Risk assessment
+  riskLevel           KycRiskLevel @default(LOW)
+  riskNotes           String?
+
+  // Admin review
+  status              KycStatus    @default(PENDING)
+  reviewedBy          String?
+  reviewNote          String?
+  submittedAt         DateTime?
+  reviewedAt          DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([status])
+  @@index([riskLevel])
+}
+
+// ─────────────────────────────────────────
+// FRAUD & RISK SCORING
+// ─────────────────────────────────────────
+
+model FraudAlert {
+  id            String      @id @default(cuid()) @map("_id")
+  userId        String
+  transactionId String?
+  type          FraudType
+  riskScore     Float
+  details       Json
+  status        AlertStatus @default(OPEN)
+  reviewedBy    String?
+  reviewNote    String?
+  createdAt     DateTime    @default(now())
+  resolvedAt    DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RiskProfile {
+  id              String   @id @default(cuid()) @map("_id")
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  velocityScore   Float    @default(0)
+  behaviorScore   Float    @default(0)
+  deviceScore     Float    @default(0)
+  overallScore    Float    @default(0)
+  txnCount24h     Int      @default(0)
+  txnVolume24h    Float  @default(0) @db.Double
+  failedTxn1h     Int      @default(0)
+  lastTxnAt       DateTime?
+  lastUpdated     DateTime @default(now())
+
+  @@index([overallScore])
+}
+
+// ─────────────────────────────────────────
+// FAMILY WALLETS
+// ─────────────────────────────────────────
+
+model FamilyLink {
+  id             String   @id @default(cuid()) @map("_id")
+  parentId       String
+  parent         User     @relation("ParentLinks", fields: [parentId], references: [id])
+  childId        String
+  child          User     @relation("ChildLinks", fields: [childId], references: [id])
+  dailyLimit     Float? @db.Double
+  monthlyLimit   Float? @db.Double
+  allowedCategories String[] // Empty = all allowed
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@unique([parentId, childId])
+  @@index([parentId])
+  @@index([childId])
+}
+
+// ─────────────────────────────────────────
+// SAVINGS VAULTS
+// ─────────────────────────────────────────
+
+model Vault {
+  id            String   @id @default(cuid()) @map("_id")
+  walletId      String
+  wallet        Wallet   @relation(fields: [walletId], references: [id])
+  name          String
+  emoji         String?  @default("💰")
+  targetAmount  Float  @db.Double
+  savedAmount   Float  @default(0) @db.Double
+  isLocked      Boolean  @default(false) // Can't withdraw if locked
+  targetDate    DateTime?
+  isCompleted   Boolean  @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([walletId])
+}
+
+// ─────────────────────────────────────────
+// MERCHANTS
+// ─────────────────────────────────────────
+
+model Merchant {
+  id              String   @id @default(cuid()) @map("_id")
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  businessName    String
+  businessType    String?
+  businessAddress String?
+  qrCode          String   @unique
+  qrCodeUrl       String?  // Cloudinary URL of QR image
+  apiKey          String   @unique @default(cuid())
+  webhookUrl      String?
+  webhookSecret   String?
+  isVerified      Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  settlementCycle String   @default("DAILY")
+  totalVolume     Float  @default(0) @db.Double
+  totalTxnCount   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+}
+
+// ─────────────────────────────────────────
+// REWARDS & LOYALTY
+// ─────────────────────────────────────────
+
+model Reward {
+  id          String     @id @default(cuid()) @map("_id")
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  type        RewardType
+  amount      Float    @default(0) @db.Double // Cashback in NPR
+  points      Int        @default(0)                     // Loyalty points
+  source      String     // transactionId or "REFERRAL:userId" or "MILESTONE:name"
+  description String?
+  expiresAt   DateTime?
+  redeemedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid()) @map("_id")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String   // PAYMENT | ALERT | REMINDER | AI_TIP | FRAUD | KYC | REWARD
+  isRead    Boolean  @default(false)
+  deepLink  String?  // e.g., "/transactions/123"
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────
+// AI FEEDBACK (Learning Loop)
+// ─────────────────────────────────────────
+
+model CategoryFeedback {
+  id              String      @id @default(cuid()) @map("_id")
+  userId          String
+  transactionId   String
+  originalCategory TxnCategory
+  correctedCategory TxnCategory
+  processedAt     DateTime?   // When AI retrained on this
+  createdAt       DateTime    @default(now())
+
+  @@index([processedAt])
+}
+
+// ─────────────────────────────────────────
+// AUDIT LOG (Immutable admin action log)
+// ─────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid()) @map("_id")
+  adminId    String
+  action     String   // e.g., "FREEZE_USER", "APPROVE_KYC", "MANUAL_LEDGER_OVERRIDE"
+  targetId   String?  // userId, transactionId, etc.
+  targetType String?  // "USER" | "TRANSACTION" | "KYC" | "WALLET"
+  before     Json?
+  after      Json?
+  reason     String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────
+// SOCIAL & COMMUNITY
+// ─────────────────────────────────────────
+
+model Post {
+  id        String    @id @default(cuid()) @map("_id")
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  imageUrl  String?
+  type      PostType  @default(USER_POST)
+  likes     Like[]
+  comments  Comment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Like {
+  id        String   @id @default(cuid()) @map("_id")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+model Comment {
+  id        String   @id @default(cuid()) @map("_id")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model Follow {
+  id          String   @id @default(cuid()) @map("_id")
+  followerId  String
+  follower    User     @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model FollowRequest {
+  id          String              @id @default(cuid()) @map("_id")
+  senderId    String
+  sender      User                @relation("SentRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId  String
+  receiver    User                @relation("ReceivedRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+  status      FollowRequestStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
+}
+
+enum PostType {
+  USER_POST
+  MERCHANT_OFFER
+  FINANCIAL_TIP
+  SYSTEM_ANNOUNCEMENT
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum KycStatus {
+  PENDING
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum KycRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum EntryType {
+  CREDIT
+  DEBIT
+}
+
+enum TxnStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  REVERSED
+  EXPIRED
+  REFUNDED
+}
+
+enum TxnType {
+  TRANSFER
+  BILL_PAY
+  TOP_UP
+  WITHDRAWAL
+  REFUND
+  MERCHANT_PAY
+  VAULT_IN
+  VAULT_OUT
+  REWARD_CASHBACK
+  REMITTANCE
+  SYSTEM_CREDIT  // Used by reconciliation recovery
+}
+
+enum TxnChannel {
+  APP
+  QR_SCAN
+  API
+  USSD
+  MERCHANT_SDK
+  ADMIN_OVERRIDE
+  SYSTEM
+}
+
+enum TxnCategory {
+  FOOD
+  TRANSPORT
+  SHOPPING
+  BILLS
+  ENTERTAINMENT
+  EDUCATION
+  HEALTH
+  SAVINGS
+  REMITTANCE
+  TRANSFER
+  REWARD
+  OTHER
+}
+
+enum RefundType {
+  FULL
+  PARTIAL
+}
+
+enum RefundStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  PROCESSED
+  REJECTED
+}
+
+enum FraudType {
+  VELOCITY_BREACH
+  IP_ANOMALY
+  BEHAVIOR_DEVIATION
+  DEVICE_CHANGE
+  LARGE_TRANSACTION
+  MULTIPLE_FAILED_ATTEMPTS
+  LOCATION_MISMATCH
+}
+
+enum AlertStatus {
+  OPEN
+  UNDER_REVIEW
+  REVIEWED
+  FALSE_POSITIVE
+  CONFIRMED
+}
+
+enum OtpType {
+  LOGIN
+  RESET_PIN
+  RESET_PASSWORD
+  KYC_VERIFY
+  WITHDRAW_CONFIRM
+  DEVICE_TRUST
+}
+
+enum JobStatus {
+  RUNNING
+  PASSED
+  FAILED
+  PARTIAL
+  FIXED
+}
+
+enum RewardType {
+  CASHBACK
+  POINTS
+  REFERRAL_BONUS
+  MILESTONE_BONUS
+  PROMOTIONAL
+}
+
+enum BillCategory {
+  // Mobile
+  MOBILE_TOPUP_NCELL
+  MOBILE_TOPUP_NTC
+  MOBILE_TOPUP_SMARTCELL
+  DATA_PACK_NCELL
+  DATA_PACK_NTC
+
+  // Electricity
+  ELECTRICITY_NEA_PREPAID
+  ELECTRICITY_NEA_POSTPAID
+
+  // Internet
+  INTERNET_WORLDLINK
+  INTERNET_VIANET
+  INTERNET_SUBISU
+  INTERNET_CLASSIC_TECH
+  INTERNET_OTHER
+
+  // TV/Cable
+  TV_DISHHOME
+  TV_NETTV
+  TV_IPTV
+  TV_OTHER
+
+  // Water
+  WATER_MUNICIPAL
+  WATER_OTHER
+
+  // Education
+  EDU_SCHOOL_FEE
+  EDU_COLLEGE_FEE
+  EDU_UNIVERSITY_FEE
+  EDU_EXAM_FEE
+
+  // Insurance
+  INSURANCE_LIFE
+  INSURANCE_HEALTH
+  INSURANCE_VEHICLE
+
+  // Government
+  GOV_TAX
+  GOV_TRAFFIC_FINE
+  GOV_SERVICE_FEE
+
+  // Merchant
+  MERCHANT_QR
+  MERCHANT_ONLINE
+
+  // Subscriptions
+  SUBSCRIPTION_NETFLIX
+  SUBSCRIPTION_YOUTUBE
+  SUBSCRIPTION_OTHER
+}
+
+enum FollowRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}

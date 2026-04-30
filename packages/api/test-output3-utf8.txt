@@ -1,0 +1,147 @@
+﻿
+> @kkollection/api@1.0.0 test
+> jest
+
+node.exe : PASS src/social/social.service.spec.ts
+At C:\Program Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/social/social.service.spec.ts:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+PASS src/ai/ai.service.spec.ts
+FAIL src/wallet/wallet.ledger.spec.ts (5.078 s)
+  ΓùÅ Ledger Engine ΓÇö Integrity Tests ΓÇ║ Balance computation ΓÇ║ should compute balance as SUM(credits) - 
+SUM(debits)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "6000.00"
+    Received: "0.00"
+
+    [0m [90m 100 |[39m
+     [90m 101 |[39m       [90m// Balance = 8000 - 2000 = 6000[39m
+    [31m[1m>[22m[39m[90m 102 |[39m       
+expect(result[33m.[39mbalance)[33m.[39mtoBe([32m'6000.00'[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 103 |[39m       expect(result[33m.[39mcurrency)[33m.[39mtoBe([32m'NPR'[39m)[33m;[39m
+     [90m 104 |[39m     })[33m;[39m
+     [90m 105 |[39m[0m
+
+      at Object.<anonymous> (wallet/wallet.ledger.spec.ts:102:30)
+
+  ΓùÅ Ledger Engine ΓÇö Integrity Tests ΓÇ║ Balance computation ΓÇ║ should return 0.00 when no transactions exist
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "0.00"
+    Received: "2000.00"
+
+    [0m [90m 112 |[39m
+     [90m 113 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m 
+service[33m.[39mgetBalance([32m'user-1'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 114 |[39m       
+expect(result[33m.[39mbalance)[33m.[39mtoBe([32m'0.00'[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 115 |[39m     })[33m;[39m
+     [90m 116 |[39m
+     [90m 117 |[39m     it([32m'should NEVER return a negative balance (strict mode)'[39m[33m,[39m 
+[36masync[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (wallet/wallet.ledger.spec.ts:114:30)
+
+  ΓùÅ Ledger Engine ΓÇö Integrity Tests ΓÇ║ Balance computation ΓÇ║ should return cached balance on second call
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "5000.00"
+    Received: "0.00"
+
+    [0m [90m 133 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m 
+service[33m.[39mgetBalance([32m'user-1'[39m)[33m;[39m
+     [90m 134 |[39m
+    [31m[1m>[22m[39m[90m 135 |[39m       
+expect(result[33m.[39mbalance)[33m.[39mtoBe([32m'5000.00'[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 136 |[39m       
+expect(mockPrisma[33m.[39mledgerEntry[33m.[39maggregate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m 
+[90m// No DB hit[39m
+     [90m 137 |[39m     })[33m;[39m
+     [90m 138 |[39m   })[33m;[39m[0m
+
+      at Object.<anonymous> (wallet/wallet.ledger.spec.ts:135:30)
+
+  ΓùÅ Ledger Engine ΓÇö Integrity Tests ΓÇ║ Idempotency ΓÇ║ should reject duplicate idempotency keys
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Duplicate request detected"
+    Received message:   "Duplicate request."
+
+        [0m [90m 251 |[39m   [36mprivate[39m [36masync[39m checkIdempotency(key[33m:[39m string) {
+         [90m 252 |[39m     [36mconst[39m existing [33m=[39m [36mawait[39m 
+[36mthis[39m[33m.[39mredis[33m.[39m[36mget[39m([32m`idempotency:${key}`[39m)[33m;[39m
+        [31m[1m>[22m[39m[90m 253 |[39m     [36mif[39m (existing) [36mthrow[39m [36mnew[39m 
+[33mConflictException[39m([32m'Duplicate request.'[39m)[33m;[39m
+         [90m     |[39m                         [31m[1m^[22m[39m
+         [90m 254 |[39m     [36mawait[39m 
+[36mthis[39m[33m.[39mredis[33m.[39m[36mset[39m([32m`idempotency:${key}`[39m[33m,[39m { status[33m:[39m 
+[32m'processing'[39m }[33m,[39m [35m86400[39m)[33m;[39m
+         [90m 255 |[39m   }
+         [90m 256 |[39m[0m
+
+      at WalletService.checkIdempotency (wallet/wallet.service.ts:253:25)
+      at Object.<anonymous> (wallet/wallet.ledger.spec.ts:147:7)
+      at Object.toThrow (../../../node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> (wallet/wallet.ledger.spec.ts:149:17)
+
+  ΓùÅ Ledger Engine ΓÇö Integrity Tests ΓÇ║ Idempotency ΓÇ║ should allow unique idempotency keys
+
+    expect(received).resolves.not.toThrow()
+
+    Received promise rejected instead of resolved
+    Rejected to value: [ConflictException: Duplicate request.]
+
+    [0m [90m 153 |[39m       
+mockRedis[33m.[39m[36mget[39m[33m.[39mmockResolvedValueOnce([36mnull[39m)[33m;[39m [90m// Key not found = 
+unique[39m
+     [90m 154 |[39m
+    [31m[1m>[22m[39m[90m 155 |[39m       [36mawait[39m expect(
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 156 |[39m         service[[32m'checkIdempotency'[39m]([32m'unique-key-123'[39m)[33m,[39m
+     [90m 157 |[39m       )[33m.[39mresolves[33m.[39mnot[33m.[39mtoThrow()[33m;[39m
+     [90m 158 |[39m     })[33m;[39m[0m
+
+      at expect (../../../node_modules/expect/build/index.js:113:15)
+      at Object.<anonymous> (wallet/wallet.ledger.spec.ts:155:13)
+
+  ΓùÅ Ledger Engine ΓÇö Integrity Tests ΓÇ║ KYC daily limits ΓÇ║ should block transaction exceeding KYC L0 daily limit 
+(Rs. 1000)
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: undefined
+
+    [0m [90m 172 |[39m
+     [90m 173 |[39m       [90m// Trying to send Rs. 500 more (800 + 500 = 1300 > 1000 limit)[39m
+    [31m[1m>[22m[39m[90m 174 |[39m       [36mawait[39m expect(
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 175 |[39m         service[[32m'checkDailyLimit'[39m]([32m'user-1'[39m[33m,[39m 
+[35m500[39m)[33m,[39m
+     [90m 176 |[39m       )[33m.[39mrejects[33m.[39mtoThrow([32m'Daily transaction limit 
+exceeded'[39m)[33m;[39m
+     [90m 177 |[39m     })[33m;[39m[0m
+
+      at expect (../../../node_modules/expect/build/index.js:113:15)
+      at Object.<anonymous> (wallet/wallet.ledger.spec.ts:174:13)
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       6 failed, 13 passed, 19 total
+Snapshots:   0 total
+Time:        6.026 s, estimated 9 s
+Ran all test suites.
+npm ERR! Lifecycle script `test` failed with error: 
+npm ERR! Error: command failed 
+npm ERR!   in workspace: @kkollection/api@1.0.0 
+npm ERR!   at location: C:\Users\LENOVO\OneDrive\Desktop\Batuwa\packages\api 

@@ -1,0 +1,70 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment — NEVER commit real secrets
+.env
+.env.development
+.env.staging
+.env.production
+.env.test
+.env.local
+# Allow only example templates
+!.env.example
+!**/.env.example
+
+# Firebase service account keys
+firebase-service-account*.json
+*-firebase-adminsdk-*.json
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Turborepo
+.turbo/
+
+# Prisma
+packages/api/prisma/migrations/*.sql.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.idea/
+.vscode/settings.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Test coverage
+coverage/
+lcov.info
+
+# AI models (large files)
+apps/ai-service/models/*.pkl
+apps/ai-service/models/*.joblib
+apps/ai-service/models/*.h5
+
+# Docker volumes (if mounted locally)
+.docker-volumes/

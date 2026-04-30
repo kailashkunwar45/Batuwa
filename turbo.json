@@ -18,8 +18,8 @@
       "outputs": []
     },
     "start": {
-      "dependsOn": ["build"],
-      "persistent": true
+      "persistent": true,
+      "cache": false
     }
   }
 }

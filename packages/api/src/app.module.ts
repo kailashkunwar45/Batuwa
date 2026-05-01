@@ -51,6 +51,11 @@ import { VaultModule } from './vault/vault.module';
       },
       {
         rootPath: join(__dirname, '..', '..', '..', '..', 'apps', 'admin', 'dist'),
+        serveRoot: '/admin',
+        exclude: ['/api/(.*)'],
+      },
+      {
+        rootPath: join(__dirname, '..', '..', '..', '..', 'apps', 'portal', 'dist'),
         serveRoot: '/',
         exclude: ['/api/(.*)'],
       }

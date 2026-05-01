@@ -5,7 +5,8 @@
   "packageManager": "npm@10.8.2",
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/*",
+    "apps/portal"
   ],
   "scripts": {
     "dev": "turbo run dev",

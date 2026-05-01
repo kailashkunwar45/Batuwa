@@ -36,7 +36,8 @@ import { VaultModule } from './vault/vault.module';
     // ─── Config (validates env at startup) ─────────────────────
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
+      envFilePath: process.env.NODE_ENV === 'production' ? undefined : `.env.${process.env.NODE_ENV || 'development'}`,
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
       validate: validateEnv,
       cache: true,
     }),

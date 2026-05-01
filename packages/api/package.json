@@ -63,6 +63,8 @@
     "uuid": "^10.0.0",
     "winston": "^3.13.0",
     "winston-daily-rotate-file": "^5.0.0",
+    "express": "^4.19.2",
+    "@types/express": "^4.17.21",
     "zod": "^3.23.0"
   },
   "devDependencies": {

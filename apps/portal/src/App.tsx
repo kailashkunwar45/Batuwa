@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Mail, Phone, ShieldCheck, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
+import { ArrowRight, ShieldCheck, CheckCircle2, Loader2 } from 'lucide-react'
 import axios from 'axios'
 import './index.css'
 

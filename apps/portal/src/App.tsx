@@ -78,12 +78,12 @@ function App() {
           {step === 'identity' && (
             <form onSubmit={handleSendOtp}>
               <div className="form-group">
-                <label className="label">Email or Phone Number</label>
+                <label className="label">Email Address</label>
                 <div style={{ position: 'relative' }}>
                   <input 
-                    type="text" 
+                    type="email" 
                     className="input" 
-                    placeholder="Enter your email or phone"
+                    placeholder="Enter your email address"
                     value={target}
                     onChange={(e) => setTarget(e.target.value)}
                     required

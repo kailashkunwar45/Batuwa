@@ -68,7 +68,7 @@ function App() {
           className="glass-card"
         >
           <div className="logo-container">
-            <Sparkles className="logo-icon floating" />
+            <img src="/logo.png" alt="Batuwa Logo" className="logo-icon floating" />
             <h1 className="title">Batuwa</h1>
             <p className="subtitle">Nepal's Digital Wallet Portal</p>
           </div>

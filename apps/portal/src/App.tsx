@@ -19,7 +19,7 @@ function App() {
     setLoading(true)
     setError('')
     try {
-      await axios.post('/api/auth/send-otp', { target, type: 'LOGIN' })
+      await axios.post('/api/v1/auth/send-otp', { target, type: 'LOGIN' })
       setStep('otp')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to send OTP')
@@ -32,7 +32,7 @@ function App() {
     setLoading(true)
     setError('')
     try {
-      const response = await axios.post('/api/auth/verify-otp', {
+      const response = await axios.post('/api/v1/auth/verify-otp', {
         target,
         code: otp.join(''),
         type: 'LOGIN'

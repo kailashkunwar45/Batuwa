@@ -45,13 +45,13 @@ import { VaultModule } from './vault/vault.module';
     // ─── Static Sites (Admin & Merchant) ────────────────────────
     ServeStaticModule.forRoot(
       {
-        rootPath: join(__dirname, '..', '..', '..', '..', 'apps', 'admin', 'dist'),
-        serveRoot: '/admin',
+        rootPath: join(__dirname, '..', '..', '..', '..', 'apps', 'merchant', 'dist'),
+        serveRoot: '/merchant',
         exclude: ['/api/(.*)'],
       },
       {
-        rootPath: join(__dirname, '..', '..', '..', '..', 'apps', 'merchant', 'dist'),
-        serveRoot: '/merchant',
+        rootPath: join(__dirname, '..', '..', '..', '..', 'apps', 'admin', 'dist'),
+        serveRoot: '/',
         exclude: ['/api/(.*)'],
       }
     ),

@@ -1,15 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import './index.css'
+
+const api = axios.create({
+  baseURL: '/api/v1',
+})
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
 
 function App() {
   const [activeTab, setActiveTab] = useState('overview')
+  const [merchant, setMerchant] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMerchant = async () => {
+      try {
+        const { data } = await api.get('/merchants/me')
+        setMerchant(data)
+      } catch (err) {
+        console.error('Failed to fetch merchant profile', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchMerchant()
+  }, [])
+
+  if (loading) return <div className="loading">Loading Merchant Portal...</div>
 
   return (
     <div className="merchant-app">
       <aside className="sidebar">
         <div className="business-info">
-          <div className="business-name">Bhat-Bhateni</div>
-          <div className="business-id">Merchant ID: BB-9942</div>
+          <div className="business-name">{merchant?.businessName || 'Merchant'}</div>
+          <div className="business-id">Status: {merchant?.isVerified ? '✅ Verified' : '⏳ Pending'}</div>
         </div>
         <nav>
           <a href="#" className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
@@ -20,9 +49,6 @@ function App() {
           </a>
           <a href="#" className={`nav-item ${activeTab === 'qr' ? 'active' : ''}`} onClick={() => setActiveTab('qr')}>
             📷 My QR Code
-          </a>
-          <a href="#" className={`nav-item ${activeTab === 'settlement' ? 'active' : ''}`} onClick={() => setActiveTab('settlement')}>
-            💰 Settlements
           </a>
         </nav>
       </aside>
@@ -36,32 +62,30 @@ function App() {
           <button className="btn btn-accent">Request Settlement</button>
         </header>
 
-        {activeTab === 'overview' && <OverviewView />}
+        {activeTab === 'overview' && <OverviewView merchant={merchant} />}
         {activeTab === 'transactions' && <TransactionsView />}
-        {activeTab === 'qr' && <QrView />}
+        {activeTab === 'qr' && <QrView merchant={merchant} />}
       </main>
     </div>
   )
 }
 
-function OverviewView() {
+function OverviewView({ merchant }: { merchant: any }) {
   return (
     <>
       <div className="revenue-grid">
         <div className="card revenue-card">
-          <div className="revenue-label">Today's Revenue</div>
-          <div className="revenue-value">Rs. 42,500</div>
-          <div style={{ color: 'var(--success)', fontSize: '0.875rem' }}>↑ 14% vs yesterday</div>
+          <div className="revenue-label">Total Volume</div>
+          <div className="revenue-value">Rs. {merchant?.totalVolume?.toLocaleString() || 0}</div>
+          <div style={{ color: 'var(--success)', fontSize: '0.875rem' }}>Updated just now</div>
         </div>
         <div className="card revenue-card">
-          <div className="revenue-label">Weekly Sales</div>
-          <div className="revenue-value">Rs. 284,000</div>
-          <div style={{ color: 'var(--success)', fontSize: '0.875rem' }}>↑ 5% vs last week</div>
+          <div className="revenue-label">Total Transactions</div>
+          <div className="revenue-value">{merchant?.totalTxnCount || 0}</div>
         </div>
         <div className="card revenue-card">
-          <div className="revenue-label">Active Customers</div>
-          <div className="revenue-value">1,242</div>
-          <div style={{ color: 'var(--primary)', fontSize: '0.875rem' }}>Returning: 68%</div>
+          <div className="revenue-label">Settlement Cycle</div>
+          <div className="revenue-value">{merchant?.settlementCycle || 'DAILY'}</div>
         </div>
       </div>
 
@@ -72,67 +96,33 @@ function OverviewView() {
             <div key={i} style={{ flex: 1, height: `${h}%`, backgroundColor: 'var(--primary)', borderRadius: '6px 6px 0 0', opacity: 0.8 }}></div>
           ))}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-          <span>10 AM</span><span>12 PM</span><span>2 PM</span><span>4 PM</span><span>6 PM</span><span>8 PM</span>
-        </div>
       </div>
     </>
   )
 }
 
 function TransactionsView() {
-  const txns = [
-    { id: 'TXN-9421', user: 'Kailash K.', amount: 2500, time: '14:25', status: 'SUCCESS' },
-    { id: 'TXN-9420', user: 'Arun S.', amount: 1200, time: '14:10', status: 'SUCCESS' },
-    { id: 'TXN-9419', user: 'Maya T.', amount: 500, time: '13:55', status: 'SUCCESS' },
-  ]
-
   return (
     <div className="card">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Txn ID</th>
-            <th>Customer</th>
-            <th>Amount</th>
-            <th>Time</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {txns.map((txn, i) => (
-            <tr key={i}>
-              <td>{txn.id}</td>
-              <td>{txn.user}</td>
-              <td style={{ fontWeight: 'bold' }}>Rs. {txn.amount}</td>
-              <td>{txn.time}</td>
-              <td><span style={{ color: 'var(--success)', fontWeight: 'bold' }}>{txn.status}</span></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p style={{ color: 'var(--text-secondary)' }}>Live transaction feed is being synchronized...</p>
     </div>
   )
 }
 
-function QrView() {
+function QrView({ merchant }: { merchant: any }) {
   return (
     <div style={{ display: 'flex', gap: '2rem' }}>
       <div className="card qr-section" style={{ flex: 1 }}>
-        <div className="qr-placeholder">
-          BATUWA QR
+        <div className="qr-placeholder" style={{ background: '#fff', padding: '1rem', borderRadius: '12px' }}>
+          <img 
+            src={merchant?.qrCodeUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + merchant?.qrCode} 
+            alt="Merchant QR" 
+            style={{ width: '100%' }}
+          />
         </div>
-        <h3>Bhat-Bhateni Store QR</h3>
-        <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Display this QR at your counter for customers to scan and pay.</p>
-        <button className="btn btn-primary">Download High-Res PDF</button>
-      </div>
-      <div className="card" style={{ flex: 1 }}>
-        <h3>QR Analytics</h3>
-        <div style={{ marginTop: '1.5rem' }}>
-          <p>Scans Today: <strong>142</strong></p>
-          <p>Conversion Rate: <strong>89%</strong></p>
-          <p>Top Counter: <strong>Main Entry A</strong></p>
-        </div>
+        <h3>{merchant?.businessName} QR</h3>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Scan to pay directly to this merchant.</p>
+        <button className="btn btn-primary" style={{ marginTop: '1rem' }}>Download High-Res PDF</button>
       </div>
     </div>
   )

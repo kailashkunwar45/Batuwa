@@ -1,5 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { validateEnv } from './config/env.validation';
@@ -38,6 +40,20 @@ import { VaultModule } from './vault/vault.module';
       validate: validateEnv,
       cache: true,
     }),
+
+    // ─── Static Sites (Admin & Merchant) ────────────────────────
+    ServeStaticModule.forRoot(
+      {
+        rootPath: join(__dirname, '..', '..', '..', 'apps', 'admin', 'dist'),
+        serveRoot: '/admin',
+        exclude: ['/api/(.*)'],
+      },
+      {
+        rootPath: join(__dirname, '..', '..', '..', 'apps', 'merchant', 'dist'),
+        serveRoot: '/merchant',
+        exclude: ['/api/(.*)'],
+      }
+    ),
 
     // ─── Schedule (cron jobs) ───────────────────────────────────
     ScheduleModule.forRoot(),

@@ -35,5 +35,6 @@
       "@events/*": ["src/events/*"]
     }
   },
-  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "prisma", "**/*.spec.ts"]
 }

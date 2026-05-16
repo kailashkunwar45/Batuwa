@@ -47,17 +47,17 @@ import { VaultModule } from './vault/vault.module';
       {
         rootPath: join(__dirname, '..', '..', '..', '..', 'apps', 'merchant', 'dist'),
         serveRoot: '/merchant',
-        exclude: ['/api/(.*)'],
+        exclude: ['/api*'],
       },
       {
         rootPath: join(__dirname, '..', '..', '..', '..', 'apps', 'admin', 'dist'),
         serveRoot: '/admin',
-        exclude: ['/api/(.*)'],
+        exclude: ['/api*'],
       },
       {
         rootPath: join(__dirname, '..', '..', '..', '..', 'apps', 'portal', 'dist'),
         serveRoot: '/',
-        exclude: ['/api/(.*)'],
+        exclude: ['/api*'],
       }
     ),
 

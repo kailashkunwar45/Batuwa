@@ -10,6 +10,7 @@
     "sourceMap": true,
     "types": ["jest", "node"],
     "outDir": "./dist",
+    "rootDir": "src",
 
     "baseUrl": "./",
     "incremental": true,
